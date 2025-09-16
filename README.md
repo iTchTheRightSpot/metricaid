@@ -9,7 +9,10 @@ across the grid. Players must find all matching pairs!
 
 ## Getting Started
 
-- After cloning repo and cd'ing into the directory, run the command below
+After cloning repo and cd'ing into the directory, ``dist.zip`` contains the
+transpiled TypeScript code.
+
+- To run locally, run the command below:
 ```bash
   npm i && npm run dev
 ```
@@ -21,3 +24,6 @@ across the grid. Players must find all matching pairs!
 
 ## Helper docs
 - [Created this project with Vite](https://vite.dev/guide/)
+
+## TODO
+- Some level of automated testing using playwright.
