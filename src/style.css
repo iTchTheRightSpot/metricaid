@@ -22,12 +22,6 @@ button {
   text-align: center;
 }
 
-.wrapper {
-  display: grid;
-  grid-template-columns: repeat(4, 2fr);
-  grid-auto-rows: 100px;
-}
-
 .footer {
   width: 100%;
   padding: 5px;

@@ -1,5 +1,5 @@
-import {MockPokemonApiImpl, NotificationImpl} from './service.ts';
-import {Game} from './game.ts'
+import { NotificationImpl, PokemonApiImpl} from './service.ts';
+import { Game } from './game.ts'
 
 document.addEventListener('DOMContentLoaded', () => {
     const timer_element = document.getElementById('count-up')
@@ -10,12 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (timer_element && grid_element && reset_btn && start_btn && notification_element) {
         const notification = new NotificationImpl(notification_element);
-        const api = new MockPokemonApiImpl()
+        const api = new PokemonApiImpl(notification)
         const args = {
             timer_element: timer_element,
             grid_wrapper: grid_element[0] as HTMLDivElement,
-            rows: 4,
-            columns: 4,
+            rows: 1,
+            columns: 2,
         }
         const game = new Game(args, api, notification)
         start_btn.addEventListener('click', async () => { await game.start() })

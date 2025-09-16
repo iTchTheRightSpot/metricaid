@@ -8,94 +8,134 @@ export interface GameArgs {
 }
 
 export class Game {
-    private timer_state = 0
-    private count_up = 0
-    private begin_game = false
-    private readonly dimension: number;
-    private pokemons: PokemonData[] = [];
-    private readonly cell_cache = new Map<string, string>()
-    private readonly cells_selected: HTMLButtonElement[] = []
-    private lock_cells = false
+    private seconds_elapsed = 0
+    private timer_id = 0
+    private has_game_started = false
+    private readonly total_cells: number;
+    private pokemon_pairs: PokemonData[] = [];
+    private readonly cell_value_map = new Map<string, string>()
+    private selected_cells: HTMLButtonElement[] = []
+    private are_cells_locked = false
 
     constructor(
         private readonly args: GameArgs,
         private readonly api: IPokemonApi,
         private readonly notify: INotification
     ) {
-        this.dimension = args.rows * args.columns;
-        this.create_grid().then().catch()
-    }
-
-    private readonly create_grid = async () => {
-        this.pokemons = await this.api.list_of_pokemons(this.dimension / 2)
-        this.args.grid_wrapper.innerHTML = '';
-        for (let i = 0; i < this.dimension; i++) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.id = `cell-${i}`;
-            this.args.grid_wrapper.appendChild(button);
+        this.total_cells = args.rows * args.columns;
+        if (this.total_cells < 1 || this.total_cells % 2 !== 0) {
+            this.notify.display('ERROR', 'Please make sure dimension is divisible by 2')
+            return
         }
-        this.setup_grid()
+        this.render_grid().then().catch()
     }
 
     private readonly start_timer = () =>
-        this.count_up = setInterval(() => {
-            this.args.timer_element.innerHTML = `${this.timer_state}`
-            this.timer_state += 1
+        this.timer_id = setInterval(() => {
+            this.args.timer_element.innerHTML = `${this.seconds_elapsed}`
+            this.seconds_elapsed += 1
         }, 1000)
 
+    private readonly render_grid = async () => {
+        this.pokemon_pairs = await this.api.list_of_pokemons(this.total_cells / 2)
 
+        const {rows, columns, grid_wrapper} = this.args;
 
-    private readonly setup_grid = () => {
-        const cells = (this.args.grid_wrapper.children as unknown) as HTMLButtonElement[]
-        for (let i = 0; i < cells.length; i++) {
-            cells[i].textContent = ''
-            this.cell_cache.set(cells[i].id, this.pokemons[Math.floor(i / 2)].name)
+        grid_wrapper.innerHTML = '';
+        grid_wrapper.style.display = 'grid';
+        grid_wrapper.style.gridTemplateRows = `repeat(${rows}, 100px)`;
+        grid_wrapper.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+        for (let i = 0; i < this.total_cells; i++) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            this.args.grid_wrapper.appendChild(button);
         }
-        console.log(this.cell_cache)
-        for (const cell of cells)
-            cell.addEventListener('click', () => {
-                if (!this.begin_game) {
-                    this.notify.display('ERROR', 'Please click start game to begin')
-                    return
-                }
-                if (this.cells_selected.length >= this.dimension) {
-                    this.notify.display('NORMAL', 'Game over by reset and start game.')
-                    return
-                } else if (cell.textContent !== '' || this.lock_cells) return
-
-                cell.textContent = this.cell_cache.get(cell.id) || ''
-                this.cells_selected.push(cell)
-                if (this.cells_selected.length > 0 && this.cells_selected.length % 2 === 0) {
-                    const last = this.cells_selected[this.cells_selected.length - 1]
-                    const second_to_last = this.cells_selected[this.cells_selected.length - 2]
-                    if (this.cell_cache.get(last.id) !== this.cell_cache.get(second_to_last.id)) {
-                        this.lock_cells = true
-                        setTimeout(() => {
-                            this.cells_selected.pop()
-                            this.cells_selected.pop()
-                            last.textContent = ''
-                            second_to_last.textContent = ''
-                            this.lock_cells = false
-                        }, 400)
-                    }
-                }
-            })
+        const cells = [...this.args.grid_wrapper.children] as HTMLButtonElement[]
+        this.shuffle_cell_ids(cells)
+        this.setup_grid(cells)
     }
 
-    readonly start = async () => {
-        this.begin_game = true
+    // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+    private readonly shuffle_cell_ids = (cells: HTMLButtonElement[]) => {
+        const ids = cells.map((_, i) => `${i}`);
+        for (let i = ids.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [ids[i], ids[j]] = [ids[j], ids[i]];
+        }
+        cells.forEach((btn, index) => btn.id = ids[index]);
+    }
+
+    private readonly setup_grid = (cells: HTMLButtonElement[]) => {
+        cells.forEach(cell => {
+            cell.textContent = ''
+            this.cell_value_map.set(cell.id, this.pokemon_pairs[Math.floor(parseInt(cell.id) / 2)].name)
+        })
+        cells.forEach(this.onclick_cell)
+    }
+
+    private readonly onclick_cell = (cell: HTMLButtonElement) => {
+        cell.addEventListener('click', () => {
+            if (!this.has_game_started) {
+                this.notify.display('ERROR', 'Please click start game to begin')
+                return
+            }
+            const cells = this.selected_cells;
+            if (cells.length >= this.total_cells) {
+                this.notify.display('NORMAL', 'Game over, please click reset and start to begin another game 🙂')
+                return
+            } else if (cell.textContent !== '' || this.are_cells_locked) return
+
+            cell.textContent = this.cell_value_map.get(cell.id) || ''
+            cells.push(cell)
+            if (cells.length > 0 && cells.length % 2 === 0) {
+                const last = cells[cells.length - 1]
+                const second_to_last = cells[cells.length - 2]
+                const is_match = this.cell_value_map.get(last.id) === this.cell_value_map.get(second_to_last.id);
+                if (is_match && cells.length === this.total_cells) {
+                    this.notify.display('NORMAL', 'Yah you won! Game over 🙂')
+                    clearInterval(this.timer_id)
+                } else if (!is_match) {
+                    this.are_cells_locked = true
+                    setTimeout(() => {
+                        cells.pop()
+                        cells.pop()
+                        last.textContent = ''
+                        second_to_last.textContent = ''
+                        this.are_cells_locked = false
+                    }, 400)
+                }
+            }
+        })
+    }
+
+    private readonly handle_mismatch = (first: HTMLButtonElement, second: HTMLButtonElement) => {
+        this.are_cells_locked = true;
+        setTimeout(() => {
+            first.textContent = '';
+            second.textContent = '';
+            this.are_cells_locked = false;
+        }, 400);
+    }
+
+    readonly start = () => {
+        this.has_game_started = true
         this.start_timer()
-        if (this.pokemons.length < 1)
-            this.pokemons = await this.api.list_of_pokemons(this.dimension / 2)
     }
 
     readonly reset = () => {
-        this.begin_game = false
-        clearInterval(this.count_up)
-        this.timer_state = 0
-        this.args.timer_element.innerHTML = ''
-        for (const btn of this.args.grid_wrapper.children) btn.textContent = ''
-        this.pokemons = []
+        this.has_game_started = false
+        this.seconds_elapsed = 0
+        clearInterval(this.timer_id)
+
+        const {timer_element, grid_wrapper} = this.args
+        timer_element.innerHTML = ''
+
+        const cells = [...grid_wrapper.children] as HTMLButtonElement[];
+        cells.forEach(cell => cell.textContent = '')
+
+        this.shuffle_cell_ids(cells)
+        this.selected_cells = []
+        this.are_cells_locked = false
     }
 }
