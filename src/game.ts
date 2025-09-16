@@ -24,17 +24,19 @@ export class Game {
     ) {
         this.total_cells = args.rows * args.columns;
         if (this.total_cells < 1 || this.total_cells % 2 !== 0) {
-            this.notify.display('ERROR', 'Please make sure dimension is divisible by 2')
+            this.notify.display('ERROR', 'Please make sure dimension is divisible by 2', 150000)
             return
         }
         this.render_grid().then().catch()
     }
 
-    private readonly start_timer = () =>
+    private readonly start_timer = () => {
+        if (this.timer_id !== 0) return
         this.timer_id = setInterval(() => {
             this.args.timer_element.innerHTML = `${this.seconds_elapsed}`
             this.seconds_elapsed += 1
         }, 1000)
+    }
 
     private readonly render_grid = async () => {
         this.pokemon_pairs = await this.api.list_of_pokemons(this.total_cells / 2)
@@ -79,32 +81,20 @@ export class Game {
             if (!this.has_game_started) {
                 this.notify.display('ERROR', 'Please click start game to begin')
                 return
-            }
-            const cells = this.selected_cells;
-            if (cells.length >= this.total_cells) {
-                this.notify.display('NORMAL', 'Game over, please click reset and start to begin another game 🙂')
-                return
             } else if (cell.textContent !== '' || this.are_cells_locked) return
 
+            const cells = this.selected_cells;
             cell.textContent = this.cell_value_map.get(cell.id) || ''
             cells.push(cell)
-            if (cells.length > 0 && cells.length % 2 === 0) {
+
+            if (cells.length % 2 === 0) {
                 const last = cells[cells.length - 1]
                 const second_to_last = cells[cells.length - 2]
                 const is_match = this.cell_value_map.get(last.id) === this.cell_value_map.get(second_to_last.id);
                 if (is_match && cells.length === this.total_cells) {
-                    this.notify.display('NORMAL', 'Yah you won! Game over 🙂')
+                    this.notify.display('NORMAL', 'You won! Game over 🙂', 150000)
                     clearInterval(this.timer_id)
-                } else if (!is_match) {
-                    this.are_cells_locked = true
-                    setTimeout(() => {
-                        cells.pop()
-                        cells.pop()
-                        last.textContent = ''
-                        second_to_last.textContent = ''
-                        this.are_cells_locked = false
-                    }, 400)
-                }
+                } else if (!is_match) this.handle_mismatch(cells.pop()!, cells.pop()!)
             }
         })
     }
@@ -127,6 +117,7 @@ export class Game {
         this.has_game_started = false
         this.seconds_elapsed = 0
         clearInterval(this.timer_id)
+        this.timer_id = 0
 
         const {timer_element, grid_wrapper} = this.args
         timer_element.innerHTML = ''
@@ -137,5 +128,7 @@ export class Game {
         this.shuffle_cell_ids(cells)
         this.selected_cells = []
         this.are_cells_locked = false
+
+        this.notify.display('NORMAL', '')
     }
 }

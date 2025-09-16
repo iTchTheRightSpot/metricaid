@@ -1,5 +1,5 @@
-import { NotificationImpl, PokemonApiImpl} from './service.ts';
-import { Game } from './game.ts'
+import {NotificationImpl, PokemonApiImpl} from './service.ts';
+import {Game} from './game.ts'
 
 document.addEventListener('DOMContentLoaded', () => {
     const timer_element = document.getElementById('count-up')
@@ -14,11 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const args = {
             timer_element: timer_element,
             grid_wrapper: grid_element[0] as HTMLDivElement,
-            rows: 1,
-            columns: 2,
+            rows: 4,
+            columns: 4,
         }
         const game = new Game(args, api, notification)
-        start_btn.addEventListener('click', async () => { await game.start() })
+        start_btn.addEventListener('click', async () => {
+            await game.start()
+        })
         reset_btn.addEventListener('click', () => game.reset())
     }
 })
