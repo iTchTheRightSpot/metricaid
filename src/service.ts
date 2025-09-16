@@ -25,13 +25,28 @@ export class PokemonApiImpl implements IPokemonApi {
     }
 }
 
+export class MockPokemonApi implements IPokemonApi {
+    async list_of_pokemons(limit: number): Promise<PokemonData[]> {
+        const mock = Array.from({ length: limit }, (_, i) => ({ name: `pokemon-name-${i + 1}` }))
+        return Promise.resolve(mock);
+    }
+}
+
 export class NotificationImpl implements INotification {
+    private timeout_state = -1
+
     constructor(private readonly element: HTMLElement) {}
 
     display(status: 'ERROR' | 'NORMAL', content: string, timeout: number = 3000): void {
         this.element.textContent = content
         if (status === 'ERROR') this.element.style.color = 'red'
         else this.element.style.color = 'blue'
-        setTimeout(() => this.element.textContent = '', timeout)
+
+        if (this.timeout_state !== -1) clearTimeout(this.timeout_state);
+
+        this.timeout_state = setTimeout(() => {
+            this.element.textContent = '';
+            this.timeout_state = -1;
+        }, timeout);
     }
 }

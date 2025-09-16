@@ -116,6 +116,7 @@ export class Game {
     readonly reset = () => {
         this.has_game_started = false
         this.seconds_elapsed = 0
+
         clearInterval(this.timer_id)
         this.timer_id = 0
 

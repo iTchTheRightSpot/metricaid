@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const notification_element = document.getElementById('notification')
 
     if (timer_element && grid_element && reset_btn && start_btn && notification_element) {
-        const notification = new NotificationImpl(notification_element);
+        const notification = new NotificationImpl(notification_element)
         const api = new PokemonApiImpl(notification)
         const args = {
             timer_element: timer_element,
