@@ -18,3 +18,6 @@ across the grid. Players must find all matching pairs!
 ```bash
   npm i && npm run dev
 ```
+
+## Helper docs
+- [Created this project with Vite](https://vite.dev/guide/)

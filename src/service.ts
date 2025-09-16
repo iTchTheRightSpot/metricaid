@@ -17,7 +17,7 @@ export class PokemonApiImpl implements IPokemonApi {
         try {
             const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}`);
             const data = await response.json();
-            return data.results.map(obj => ({ name: obj.name }))
+            return data.results.map((obj: PokemonData) => ({ name: obj.name }))
         } catch (_) {
             this.notify.display('ERROR', 'error calling pokemon api')
             return Promise.resolve([])
